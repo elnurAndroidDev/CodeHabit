@@ -1,4 +1,4 @@
-package com.tabletap.githubcontribsapp.ui.theme
+package com.tabletap.githubcontribsapp.presentation.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
