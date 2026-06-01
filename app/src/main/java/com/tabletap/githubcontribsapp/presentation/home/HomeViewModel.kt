@@ -2,6 +2,7 @@ package com.tabletap.githubcontribsapp.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tabletap.githubcontribsapp.domain.Contrib
 import com.tabletap.githubcontribsapp.domain.github.GetContribsUseCase
 import com.tabletap.githubcontribsapp.domain.github.GetCurrentUserUseCase
 import com.tabletap.githubcontribsapp.domain.github.TokenRepository
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -39,6 +41,36 @@ class HomeViewModel @Inject constructor(
 
     init {
         onIntent(HomeIntent.LoadData)
+    }
+
+    private fun recomputeCombined() {
+        val gh = _state.value.github
+        val lc = _state.value.leetcode
+        val combined = when {
+            gh is SourceState.Loading || lc is SourceState.Loading -> SourceState.Loading
+            else -> {
+                val ghList = (gh as? SourceState.Success)?.contribs ?: emptyList()
+                val lcList = (lc as? SourceState.Success)?.contribs ?: emptyList()
+                if (ghList.isEmpty() && lcList.isEmpty()) {
+                    SourceState.Error("No data available from either source")
+                } else {
+                    SourceState.Success(mergeContribs(ghList, lcList))
+                }
+            }
+        }
+        _state.update { it.copy(combined = combined) }
+    }
+
+    private fun mergeContribs(a: List<Contrib>, b: List<Contrib>): List<Contrib> {
+        val map = mutableMapOf<String, Int>()
+        for (c in a) map[c.date] = (map[c.date] ?: 0) + c.count
+        for (c in b) map[c.date] = (map[c.date] ?: 0) + c.count
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val firstDay = today.minusDays(370L)
+        return (0..370).map { offset ->
+            val date = firstDay.plusDays(offset.toLong())
+            Contrib(date = date.toString(), count = map[date.toString()] ?: 0)
+        }
     }
 
     fun onIntent(intent: HomeIntent) {
@@ -64,7 +96,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val githubJob = async { loadGithub() }
             val leetcodeJob = async {
-                if (leetCodeUsername != null) loadLeetCode(leetCodeUsername)
+                if (leetCodeUsername != null) {
+                    loadLeetCode(leetCodeUsername)
+                } else {
+                    recomputeCombined()
+                }
             }
             githubJob.await()
             leetcodeJob.await()
@@ -90,12 +126,14 @@ class HomeViewModel @Inject constructor(
             .onSuccess { contribs ->
                 Timber.d("Loaded ${contribs.size} GitHub contribution days")
                 _state.update { it.copy(github = SourceState.Success(contribs)) }
+                recomputeCombined()
             }
             .onFailure { e ->
                 Timber.w("Failed to load GitHub contributions: ${e.message}")
                 _state.update {
                     it.copy(github = SourceState.Error(e.message ?: "Could not load GitHub contributions"))
                 }
+                recomputeCombined()
             }
     }
 
@@ -104,12 +142,14 @@ class HomeViewModel @Inject constructor(
             .onSuccess { contribs ->
                 Timber.d("Loaded ${contribs.size} LeetCode submission days")
                 _state.update { it.copy(leetcode = SourceState.Success(contribs)) }
+                recomputeCombined()
             }
             .onFailure { e ->
                 Timber.w("Failed to load LeetCode submissions: ${e.message}")
                 _state.update {
                     it.copy(leetcode = SourceState.Error(e.message ?: "Could not load LeetCode submissions"))
                 }
+                recomputeCombined()
             }
     }
 

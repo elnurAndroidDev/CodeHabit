@@ -14,4 +14,5 @@ data class HomeState(
     val leetcodeUsername: String? = null,
     val github: SourceState = SourceState.Loading,
     val leetcode: SourceState = SourceState.Loading,
+    val combined: SourceState = SourceState.Loading,
 )

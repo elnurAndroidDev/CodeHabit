@@ -96,6 +96,13 @@ fun HomeScreenContent(
                 onRetry = { onIntent(HomeIntent.LoadData) },
                 onConfigure = { onIntent(HomeIntent.EditLeetCode) }
             )
+            Spacer(modifier = Modifier.height(24.dp))
+            SourceSection(
+                title = "Combined",
+                source = state.combined,
+                onRetry = { onIntent(HomeIntent.LoadData) },
+                onConfigure = null
+            )
         }
     }
 }
