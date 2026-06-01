@@ -2,10 +2,13 @@ package com.tabletap.githubcontribsapp.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tabletap.githubcontribsapp.domain.GetContribsUseCase
-import com.tabletap.githubcontribsapp.domain.GetCurrentUserUseCase
-import com.tabletap.githubcontribsapp.domain.TokenRepository
+import com.tabletap.githubcontribsapp.domain.github.GetContribsUseCase
+import com.tabletap.githubcontribsapp.domain.github.GetCurrentUserUseCase
+import com.tabletap.githubcontribsapp.domain.github.TokenRepository
+import com.tabletap.githubcontribsapp.domain.leetcode.GetLeetCodeContribsUseCase
+import com.tabletap.githubcontribsapp.domain.leetcode.LeetCodeProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +26,9 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val getCurrentUser: GetCurrentUserUseCase,
     private val getContribs: GetContribsUseCase,
-    private val tokenRepository: TokenRepository
+    private val getLeetCodeContribs: GetLeetCodeContribsUseCase,
+    private val tokenRepository: TokenRepository,
+    private val leetCodeProfileRepository: LeetCodeProfileRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -40,45 +45,79 @@ class HomeViewModel @Inject constructor(
         when (intent) {
             HomeIntent.LoadData -> loadData()
             HomeIntent.Logout -> logout()
+            HomeIntent.EditLeetCode -> viewModelScope.launch {
+                _effect.send(HomeEffect.NavigateToLeetCodeAuth)
+            }
         }
     }
 
     private fun loadData() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-
-            val usernameResult = getCurrentUser()
-            if (usernameResult.isFailure) {
-                val message = usernameResult.exceptionOrNull()?.message
-                Timber.w("Failed to get user: $message")
-                _state.update { it.copy(isLoading = false, error = message) }
-                return@launch
-            }
-            val username = usernameResult.getOrThrow()
-            Timber.d("Loaded user: $username")
-
-            val now = ZonedDateTime.now(ZoneOffset.UTC)
-            val to = now.format(DateTimeFormatter.ISO_INSTANT)
-            val from = now.minusYears(1).format(DateTimeFormatter.ISO_INSTANT)
-
-            getContribs(username, from, to)
-                .onSuccess { contribs ->
-                    Timber.d("Loaded ${contribs.size} contribution days")
-                    _state.update {
-                        it.copy(isLoading = false, username = username, contributions = contribs)
-                    }
-                }
-                .onFailure { e ->
-                    Timber.w("Failed to load contributions: ${e.message}")
-                    _state.update { it.copy(isLoading = false, error = e.message) }
-                }
+        val leetCodeUsername = leetCodeProfileRepository.getUsername()
+        _state.update {
+            it.copy(
+                leetcodeUsername = leetCodeUsername,
+                github = SourceState.Loading,
+                leetcode = if (leetCodeUsername == null) SourceState.NotConfigured else SourceState.Loading
+            )
         }
+
+        viewModelScope.launch {
+            val githubJob = async { loadGithub() }
+            val leetcodeJob = async {
+                if (leetCodeUsername != null) loadLeetCode(leetCodeUsername)
+            }
+            githubJob.await()
+            leetcodeJob.await()
+        }
+    }
+
+    private suspend fun loadGithub() {
+        val usernameResult = getCurrentUser()
+        if (usernameResult.isFailure) {
+            val message = usernameResult.exceptionOrNull()?.message ?: "Could not load GitHub user"
+            Timber.w("Failed to get GitHub user: $message")
+            _state.update { it.copy(github = SourceState.Error(message)) }
+            return
+        }
+        val username = usernameResult.getOrThrow()
+        _state.update { it.copy(githubUsername = username) }
+
+        val now = ZonedDateTime.now(ZoneOffset.UTC)
+        val to = now.format(DateTimeFormatter.ISO_INSTANT)
+        val from = now.minusYears(1).format(DateTimeFormatter.ISO_INSTANT)
+
+        getContribs(username, from, to)
+            .onSuccess { contribs ->
+                Timber.d("Loaded ${contribs.size} GitHub contribution days")
+                _state.update { it.copy(github = SourceState.Success(contribs)) }
+            }
+            .onFailure { e ->
+                Timber.w("Failed to load GitHub contributions: ${e.message}")
+                _state.update {
+                    it.copy(github = SourceState.Error(e.message ?: "Could not load GitHub contributions"))
+                }
+            }
+    }
+
+    private suspend fun loadLeetCode(username: String) {
+        getLeetCodeContribs(username)
+            .onSuccess { contribs ->
+                Timber.d("Loaded ${contribs.size} LeetCode submission days")
+                _state.update { it.copy(leetcode = SourceState.Success(contribs)) }
+            }
+            .onFailure { e ->
+                Timber.w("Failed to load LeetCode submissions: ${e.message}")
+                _state.update {
+                    it.copy(leetcode = SourceState.Error(e.message ?: "Could not load LeetCode submissions"))
+                }
+            }
     }
 
     private fun logout() {
         viewModelScope.launch {
             Timber.d("Logging out")
             tokenRepository.clearToken()
+            leetCodeProfileRepository.reset()
             _effect.send(HomeEffect.NavigateToAuth)
         }
     }

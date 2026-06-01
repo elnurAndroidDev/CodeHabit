@@ -6,11 +6,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.tabletap.githubcontribsapp.presentation.auth.AuthScreen
 import com.tabletap.githubcontribsapp.presentation.home.HomeScreen
+import com.tabletap.githubcontribsapp.presentation.leetcode_auth.LeetCodeAuthScreen
 import com.tabletap.githubcontribsapp.presentation.splash.SplashScreen
 
 private sealed class Screen(val route: String) {
     object Splash : Screen("splash")
     object Auth : Screen("auth")
+    object LeetCodeAuth : Screen("leetcode_auth")
     object Home : Screen("home")
 }
 
@@ -30,14 +32,28 @@ fun AppNavigation() {
                     navController.navigate(Screen.Auth.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
+                },
+                onNavigateToLeetCodeAuth = {
+                    navController.navigate(Screen.LeetCodeAuth.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
                 }
             )
         }
         composable(Screen.Auth.route) {
             AuthScreen(
+                onNavigateToLeetCodeAuth = {
+                    navController.navigate(Screen.LeetCodeAuth.route) {
+                        popUpTo(Screen.Auth.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Screen.LeetCodeAuth.route) {
+            LeetCodeAuthScreen(
                 onNavigateToHome = {
                     navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Auth.route) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 }
             )
@@ -48,6 +64,9 @@ fun AppNavigation() {
                     navController.navigate(Screen.Auth.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onNavigateToLeetCodeAuth = {
+                    navController.navigate(Screen.LeetCodeAuth.route)
                 }
             )
         }

@@ -1,4 +1,4 @@
-package com.tabletap.githubcontribsapp.domain
+package com.tabletap.githubcontribsapp.domain.github
 
 interface TokenRepository {
     fun saveToken(token: String)

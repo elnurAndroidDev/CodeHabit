@@ -1,5 +1,6 @@
-package com.tabletap.githubcontribsapp.domain
+package com.tabletap.githubcontribsapp.domain.github
 
+import com.tabletap.githubcontribsapp.domain.Contrib
 import javax.inject.Inject
 
 class GetContribsUseCase @Inject constructor(
@@ -9,7 +10,5 @@ class GetContribsUseCase @Inject constructor(
         username: String,
         from: String,
         to: String
-    ): Result<List<Contrib>> {
-        return repository.getContributes(username, from, to)
-    }
+    ): Result<List<Contrib>> = repository.getContributes(username, from, to)
 }

@@ -1,4 +1,4 @@
-package com.tabletap.githubcontribsapp.domain
+package com.tabletap.githubcontribsapp.domain.github
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

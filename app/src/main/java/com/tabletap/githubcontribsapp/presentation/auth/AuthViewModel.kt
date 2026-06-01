@@ -2,8 +2,8 @@ package com.tabletap.githubcontribsapp.presentation.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tabletap.githubcontribsapp.domain.TokenRepository
-import com.tabletap.githubcontribsapp.domain.ValidateTokenUseCase
+import com.tabletap.githubcontribsapp.domain.github.TokenRepository
+import com.tabletap.githubcontribsapp.domain.github.ValidateTokenUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,9 +39,9 @@ class AuthViewModel @Inject constructor(
             _state.update { it.copy(isLoading = true, error = null) }
             validateToken(token)
                 .onSuccess {
-                    Timber.d("Token valid, saving and navigating to home")
+                    Timber.d("Token valid, saving and navigating to LeetCode setup")
                     tokenRepository.saveToken(token.trim())
-                    _effect.send(AuthEffect.NavigateToHome)
+                    _effect.send(AuthEffect.NavigateToLeetCodeAuth)
                 }
                 .onFailure { e ->
                     Timber.w("Token validation failed: ${e.message}")

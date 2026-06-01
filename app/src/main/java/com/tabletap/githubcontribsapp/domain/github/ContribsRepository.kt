@@ -1,4 +1,6 @@
-package com.tabletap.githubcontribsapp.domain
+package com.tabletap.githubcontribsapp.domain.github
+
+import com.tabletap.githubcontribsapp.domain.Contrib
 
 interface ContribsRepository {
     suspend fun getContributes(

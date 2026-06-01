@@ -1,8 +1,8 @@
-package com.tabletap.githubcontribsapp.data
+package com.tabletap.githubcontribsapp.data.github
 
 import android.content.Context
 import androidx.core.content.edit
-import com.tabletap.githubcontribsapp.domain.TokenRepository
+import com.tabletap.githubcontribsapp.domain.github.TokenRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -21,9 +21,8 @@ class TokenRepositoryImpl @Inject constructor(
         prefs.edit { putString(KEY_TOKEN, token) }
     }
 
-    override fun getToken(): String? {
-        return prefs.getString(KEY_TOKEN, null)
-    }
+    override fun getToken(): String? =
+        prefs.getString(KEY_TOKEN, null)
 
     override fun clearToken() {
         prefs.edit { remove(KEY_TOKEN) }

@@ -4,4 +4,5 @@ sealed class SplashState {
     object Loading : SplashState()
     object NavigateToHome : SplashState()
     object NavigateToAuth : SplashState()
+    object NavigateToLeetCodeAuth : SplashState()
 }

@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">GithubContribsApp</string>
+    <!-- Stubs for in-progress widget; rename/translate as needed. -->
+    <string name="widget_sign_in">Sign in</string>
+    <string name="widget_refresh_desc">Refresh</string>
+    <string name="widget_graph_desc">Contributions graph</string>
+    <string name="widget_description">GitHub contributions</string>
 </resources>

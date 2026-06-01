@@ -24,7 +24,8 @@ import com.tabletap.githubcontribsapp.presentation.ui.theme.GithubContribsAppThe
 fun SplashScreen(
     viewModel: SplashViewModel = hiltViewModel(),
     onNavigateToHome: () -> Unit,
-    onNavigateToAuth: () -> Unit
+    onNavigateToAuth: () -> Unit,
+    onNavigateToLeetCodeAuth: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -32,6 +33,7 @@ fun SplashScreen(
         when (state) {
             SplashState.NavigateToHome -> onNavigateToHome()
             SplashState.NavigateToAuth -> onNavigateToAuth()
+            SplashState.NavigateToLeetCodeAuth -> onNavigateToLeetCodeAuth()
             SplashState.Loading -> Unit
         }
     }
@@ -47,7 +49,7 @@ fun SplashScreenContent() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "GitHub Contributions",
+            text = "Code Habit",
             style = MaterialTheme.typography.headlineLarge
         )
         Spacer(modifier = Modifier.height(24.dp))
