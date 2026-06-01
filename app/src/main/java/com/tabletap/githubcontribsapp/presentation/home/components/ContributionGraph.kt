@@ -48,11 +48,7 @@ import com.tabletap.githubcontribsapp.domain.Contrib
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.Month
-import java.time.YearMonth
-import java.time.temporal.ChronoUnit
-import java.util.Locale
 import kotlin.math.roundToInt
-import java.time.format.TextStyle as JavaTextStyle
 
 enum class HeatmapStyle { GitHub, LeetCode }
 
@@ -93,11 +89,6 @@ private fun Heatmap(
     }
 }
 
-/**
- * GitHub-style: continuous Sun→Sat weeks, uniform spacing, sticky day labels
- * (Mon/Wed/Fri) on the left, GitHub's classic green palette. Month labels above
- * the first week of each month.
- */
 @Composable
 private fun GitHubHeatmap(
     contributions: List<Contrib>,
@@ -110,7 +101,7 @@ private fun GitHubHeatmap(
     val cornerRadius = 2.dp
     val gap = 2.dp
     val monthLabelHeight = 14.dp
-    val palette = githubPalette
+    val palette = githubPaletteInts
 
     val gridHeight = cellSize * 7 + gap * 6
     val canvasHeight = monthLabelHeight + gridHeight
@@ -145,7 +136,7 @@ private fun GitHubHeatmap(
                     week.days.forEachIndexed { dayIndex, count ->
                         if (count != null) {
                             drawRoundRect(
-                                color = paletteColor(palette, count),
+                                color = Color(palette[paletteIndex(count)]),
                                 topLeft = Offset(x = x, y = gridTopPx + dayIndex * (cellPx + gapPx)),
                                 size = Size(cellPx, cellPx),
                                 cornerRadius = CornerRadius(cornerPx)
@@ -172,18 +163,6 @@ private fun GitHubHeatmap(
     }
 }
 
-/**
- * LeetCode-style: one block of week-columns per calendar month, with a visible
- * gap between months. Weeks that straddle two months appear in both blocks,
- * showing only the cells belonging to each month — matching leetcode.com's look.
- *
- * Layout algorithm (per month, mirroring the reference Python implementation):
- *   for each week-column in this month:
- *     for dayIndex 0..6 (Sun..Sat):
- *       if the date belongs to this month, draw a cell
- *     advance x by (cellSize + gap)
- *   advance x by monthGap before the next month
- */
 @Composable
 private fun LeetCodeHeatmap(
     contributions: List<Contrib>,
@@ -202,7 +181,7 @@ private fun LeetCodeHeatmap(
     val gap = 2.dp
     val monthGap = 8.dp
     val monthLabelHeight = 14.dp
-    val palette = leetcodePalette
+    val palette = leetcodePaletteInts
 
     val gridHeight = cellSize * 7 + gap * 6
     val canvasHeight = monthLabelHeight + gridHeight
@@ -239,7 +218,6 @@ private fun LeetCodeHeatmap(
                 val n = block.weekColumns.size
                 val monthWidthPx = cellPx * n + gapPx * (n - 1).coerceAtLeast(0)
 
-                // Month label centered above this month's columns
                 val measured = textMeasurer.measure(
                     AnnotatedString(monthAbbrev(block.month)),
                     style = monthLabelTextStyle
@@ -247,14 +225,13 @@ private fun LeetCodeHeatmap(
                 val labelX = (x + (monthWidthPx - measured.size.width) / 2f).coerceAtLeast(x)
                 drawText(textLayoutResult = measured, topLeft = Offset(x = labelX, y = 0f))
 
-                // Draw each week-column for this month
                 block.weekColumns.forEachIndexed { weekIndex, week ->
                     val columnX = x + weekIndex * (cellPx + gapPx)
                     week.forEachIndexed { dayIndex, date ->
                         if (date != null) {
                             val count = byDate[date] ?: 0
                             drawRoundRect(
-                                color = paletteColor(palette, count),
+                                color = Color(palette[paletteIndex(count)]),
                                 topLeft = Offset(
                                     x = columnX,
                                     y = gridTopPx + dayIndex * (cellPx + gapPx)
@@ -283,7 +260,6 @@ private fun DayLabelColumn(
         modifier = Modifier.padding(top = topPadding, end = 4.dp),
         verticalArrangement = Arrangement.spacedBy(gap)
     ) {
-        // Sun, Mon, Tue, Wed, Thu, Fri, Sat — only odd weekdays get labels.
         listOf("", "Mon", "", "Wed", "", "Fri", "").forEach { label ->
             Box(
                 modifier = Modifier.height(cellSize),
@@ -300,115 +276,6 @@ private fun DayLabelColumn(
         }
     }
 }
-
-/** One column in the heatmap: 7 cells from Sunday to Saturday. */
-private data class Week(
-    val days: List<Int?>,
-    val startsNewMonth: Boolean,
-    val weekFirstDay: LocalDate
-)
-
-private fun buildWeeks(contributions: List<Contrib>): List<Week>? {
-    val parsed = contributions.mapNotNull { c ->
-        runCatching { LocalDate.parse(c.date) to c.count }.getOrNull()
-    }
-    if (parsed.isEmpty()) return null
-
-    val byDate = parsed.toMap()
-    val sortedDates = parsed.map { it.first }.sorted()
-    val first = sortedDates.first()
-    val last = sortedDates.last()
-
-    // DayOfWeek.value: MONDAY=1..SUNDAY=7. We want SUN=0, MON=1, ..., SAT=6.
-    fun sundayOffset(date: LocalDate): Int = date.dayOfWeek.value % 7
-
-    val gridStart = first.minusDays(sundayOffset(first).toLong())
-    val gridEnd = last.plusDays((6 - sundayOffset(last)).toLong())
-    val totalWeeks = (ChronoUnit.DAYS.between(gridStart, gridEnd).toInt() + 1) / 7
-
-    var prevMonth = gridStart.month
-    return (0 until totalWeeks).map { weekIndex ->
-        val weekFirstDay = gridStart.plusDays((weekIndex * 7).toLong())
-        val days = (0 until 7).map { dayIndex ->
-            byDate[weekFirstDay.plusDays(dayIndex.toLong())]
-        }
-        val startsNewMonth = weekIndex > 0 && weekFirstDay.month != prevMonth
-        prevMonth = weekFirstDay.month
-        Week(days = days, startsNewMonth = startsNewMonth, weekFirstDay = weekFirstDay)
-    }
-}
-
-/** One month's set of week-columns for the LeetCode-style layout. */
-private data class MonthBlock(
-    val month: Month,
-    val weekColumns: List<List<LocalDate?>>
-)
-
-private fun buildMonthBlocks(contributions: List<Contrib>): List<MonthBlock>? {
-    val parsed = contributions.mapNotNull { c ->
-        runCatching { LocalDate.parse(c.date) to c.count }.getOrNull()
-    }
-    if (parsed.isEmpty()) return null
-
-    val sortedDates = parsed.map { it.first }.sorted()
-    val lastDate = sortedDates.last()
-    val firstMonth = YearMonth.from(sortedDates.first())
-    val lastMonth = YearMonth.from(lastDate)
-
-    val months = mutableListOf<YearMonth>()
-    var current = firstMonth
-    while (!current.isAfter(lastMonth)) {
-        months.add(current)
-        current = current.plusMonths(1)
-    }
-
-    return months.map { ym ->
-        val firstOfMonth = ym.atDay(1)
-        val lastOfMonth = ym.atEndOfMonth()
-        // Sunday on or before the first of the month.
-        val sundayOffset = firstOfMonth.dayOfWeek.value % 7
-        val gridStart = firstOfMonth.minusDays(sundayOffset.toLong())
-
-        val weeks = mutableListOf<List<LocalDate?>>()
-        var weekStart = gridStart
-        while (!weekStart.isAfter(lastOfMonth)) {
-            val week = (0 until 7).map { dayIndex ->
-                val date = weekStart.plusDays(dayIndex.toLong())
-                if (YearMonth.from(date) == ym && !date.isAfter(lastDate)) date else null
-            }
-            weeks.add(week)
-            weekStart = weekStart.plusDays(7)
-        }
-        MonthBlock(month = ym.month, weekColumns = weeks)
-    }
-}
-
-private fun monthAbbrev(month: Month): String =
-    month.getDisplayName(JavaTextStyle.SHORT, Locale.getDefault())
-
-private fun paletteColor(palette: List<Color>, count: Int): Color = when {
-    count == 0 -> palette[0]
-    count <= 3 -> palette[1]
-    count <= 6 -> palette[2]
-    count <= 9 -> palette[3]
-    else       -> palette[4]
-}
-
-private val githubPalette = listOf(
-    Color(0xFFEBEDF0),
-    Color(0xFF9BE9A8),
-    Color(0xFF40C463),
-    Color(0xFF30A14E),
-    Color(0xFF216E39),
-)
-
-private val leetcodePalette = listOf(
-    Color(0xFFEFEFEF),
-    Color(0xFFC6E48B),
-    Color(0xFF7BC96F),
-    Color(0xFF239A3B),
-    Color(0xFF196127),
-)
 
 @Composable
 private fun HorizontalScrollBar(

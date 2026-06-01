@@ -13,6 +13,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.GithubContribsApp">
+
         <activity
             android:name=".presentation.MainActivity"
             android:exported="true"
@@ -20,10 +21,31 @@
             android:theme="@style/Theme.GithubContribsApp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".widget.ContribsAppWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tabletap.githubcontribsapp.widget.ACTION_REFRESH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/contribs_widget_info" />
+        </receiver>
+
+        <activity
+            android:name=".widget.ContribsWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.GithubContribsApp">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>
