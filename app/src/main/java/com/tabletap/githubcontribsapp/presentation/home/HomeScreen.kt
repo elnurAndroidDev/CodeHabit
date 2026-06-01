@@ -36,6 +36,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tabletap.githubcontribsapp.domain.Contrib
 import com.tabletap.githubcontribsapp.presentation.home.components.ContributionGraph
+import com.tabletap.githubcontribsapp.presentation.home.components.HeatmapStyle
 import com.tabletap.githubcontribsapp.presentation.ui.theme.GithubContribsAppTheme
 
 @Composable
@@ -86,6 +87,7 @@ fun HomeScreenContent(
                 title = "GitHub" + state.githubUsername.takeIf { it.isNotEmpty() }
                     ?.let { " · @$it" }.orEmpty(),
                 source = state.github,
+                style = HeatmapStyle.GitHub,
                 onRetry = { onIntent(HomeIntent.LoadData) },
                 onConfigure = null
             )
@@ -93,6 +95,7 @@ fun HomeScreenContent(
             SourceSection(
                 title = "LeetCode" + state.leetcodeUsername?.let { " · @$it" }.orEmpty(),
                 source = state.leetcode,
+                style = HeatmapStyle.LeetCode,
                 onRetry = { onIntent(HomeIntent.LoadData) },
                 onConfigure = { onIntent(HomeIntent.EditLeetCode) }
             )
@@ -100,6 +103,7 @@ fun HomeScreenContent(
             SourceSection(
                 title = "Combined",
                 source = state.combined,
+                style = HeatmapStyle.GitHub,
                 onRetry = { onIntent(HomeIntent.LoadData) },
                 onConfigure = null
             )
@@ -145,12 +149,17 @@ private fun OverflowMenu(onIntent: (HomeIntent) -> Unit) {
 private fun SourceSection(
     title: String,
     source: SourceState,
+    style: HeatmapStyle,
     onRetry: () -> Unit,
     onConfigure: (() -> Unit)?
 ) {
     when (source) {
         SourceState.Loading -> LoadingCard(title)
-        is SourceState.Success -> ContributionGraph(title = title, contributions = source.contribs)
+        is SourceState.Success -> ContributionGraph(
+            title = title,
+            contributions = source.contribs,
+            style = style
+        )
         is SourceState.Error -> ErrorCard(title = title, message = source.message, onRetry = onRetry)
         SourceState.NotConfigured -> NotConfiguredCard(title = title, onConfigure = onConfigure)
     }
