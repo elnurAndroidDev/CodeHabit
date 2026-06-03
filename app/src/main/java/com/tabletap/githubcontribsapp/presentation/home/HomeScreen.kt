@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -75,34 +76,41 @@ fun HomeScreenContent(
             )
         }
     ) { padding ->
-        Column(
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = { onIntent(HomeIntent.Refresh) },
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            SourceSection(
-                title = "GitHub" + state.githubUsername.takeIf { it.isNotEmpty() }
-                    ?.let { " · @$it" }.orEmpty(),
-                source = state.github,
-                onRetry = { onIntent(HomeIntent.LoadData) },
-                onConfigure = null
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            SourceSection(
-                title = "LeetCode" + state.leetcodeUsername?.let { " · @$it" }.orEmpty(),
-                source = state.leetcode,
-                onRetry = { onIntent(HomeIntent.LoadData) },
-                onConfigure = { onIntent(HomeIntent.EditLeetCode) }
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            SourceSection(
-                title = "Combined",
-                source = state.combined,
-                onRetry = { onIntent(HomeIntent.LoadData) },
-                onConfigure = null
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                SourceSection(
+                    title = "GitHub" + state.githubUsername.takeIf { it.isNotEmpty() }
+                        ?.let { " · @$it" }.orEmpty(),
+                    source = state.github,
+                    onRetry = { onIntent(HomeIntent.LoadData) },
+                    onConfigure = null
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                SourceSection(
+                    title = "LeetCode" + state.leetcodeUsername?.let { " · @$it" }.orEmpty(),
+                    source = state.leetcode,
+                    onRetry = { onIntent(HomeIntent.LoadData) },
+                    onConfigure = { onIntent(HomeIntent.EditLeetCode) }
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                SourceSection(
+                    title = "Combined",
+                    source = state.combined,
+                    onRetry = { onIntent(HomeIntent.LoadData) },
+                    onConfigure = null
+                )
+            }
         }
     }
 }

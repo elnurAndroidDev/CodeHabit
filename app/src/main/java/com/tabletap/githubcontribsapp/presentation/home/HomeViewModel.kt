@@ -11,6 +11,7 @@ import com.tabletap.githubcontribsapp.domain.leetcode.LeetCodeProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -76,6 +77,7 @@ class HomeViewModel @Inject constructor(
     fun onIntent(intent: HomeIntent) {
         when (intent) {
             HomeIntent.LoadData -> loadData()
+            HomeIntent.Refresh -> refresh()
             HomeIntent.Logout -> logout()
             HomeIntent.EditLeetCode -> viewModelScope.launch {
                 _effect.send(HomeEffect.NavigateToLeetCodeAuth)
@@ -84,16 +86,32 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun loadData() {
+        viewModelScope.launch { fetchAll(showLoading = true) }
+    }
+
+    private fun refresh() {
+        _state.update { it.copy(isRefreshing = true) }
+        viewModelScope.launch {
+            fetchAll(showLoading = false)
+            _state.update { it.copy(isRefreshing = false) }
+        }
+    }
+
+    private suspend fun fetchAll(showLoading: Boolean) {
         val leetCodeUsername = leetCodeProfileRepository.getUsername()
         _state.update {
             it.copy(
                 leetcodeUsername = leetCodeUsername,
-                github = SourceState.Loading,
-                leetcode = if (leetCodeUsername == null) SourceState.NotConfigured else SourceState.Loading
+                github = if (showLoading) SourceState.Loading else it.github,
+                leetcode = when {
+                    leetCodeUsername == null -> SourceState.NotConfigured
+                    showLoading -> SourceState.Loading
+                    else -> it.leetcode
+                }
             )
         }
 
-        viewModelScope.launch {
+        coroutineScope {
             val githubJob = async { loadGithub() }
             val leetcodeJob = async {
                 if (leetCodeUsername != null) {
