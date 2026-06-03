@@ -8,16 +8,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -27,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
@@ -47,16 +43,12 @@ import androidx.compose.ui.unit.sp
 import com.tabletap.githubcontribsapp.domain.Contrib
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.Month
 import kotlin.math.roundToInt
-
-enum class HeatmapStyle { GitHub, LeetCode }
 
 @Composable
 fun ContributionGraph(
     title: String,
     contributions: List<Contrib>,
-    style: HeatmapStyle,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -66,100 +58,14 @@ fun ContributionGraph(
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.height(12.dp))
-        Heatmap(contributions = contributions, scrollState = scrollState, style = style)
+        if (contributions.isNotEmpty()) {
+            LeetCodeHeatmap(contributions = contributions, scrollState = scrollState)
+        }
         Spacer(modifier = Modifier.height(8.dp))
         HorizontalScrollBar(
             scrollState = scrollState,
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-@Composable
-private fun Heatmap(
-    contributions: List<Contrib>,
-    scrollState: ScrollState,
-    style: HeatmapStyle,
-    modifier: Modifier = Modifier
-) {
-    if (contributions.isEmpty()) return
-    when (style) {
-        HeatmapStyle.GitHub -> GitHubHeatmap(contributions, scrollState, modifier)
-        HeatmapStyle.LeetCode -> LeetCodeHeatmap(contributions, scrollState, modifier)
-    }
-}
-
-@Composable
-private fun GitHubHeatmap(
-    contributions: List<Contrib>,
-    scrollState: ScrollState,
-    modifier: Modifier = Modifier
-) {
-    val weeks = remember(contributions) { buildWeeks(contributions) } ?: return
-
-    val cellSize = 11.dp
-    val cornerRadius = 2.dp
-    val gap = 2.dp
-    val monthLabelHeight = 14.dp
-    val palette = githubPaletteInts
-
-    val gridHeight = cellSize * 7 + gap * 6
-    val canvasHeight = monthLabelHeight + gridHeight
-    val gridWidth = cellSize * weeks.size + gap * (weeks.size - 1)
-
-    val labelColor = Color(0xFF6E7681)
-    val textMeasurer = rememberTextMeasurer()
-    val monthLabelTextStyle = TextStyle(fontSize = 9.sp, color = labelColor)
-
-    Row(modifier = modifier) {
-        DayLabelColumn(
-            cellSize = cellSize,
-            gap = gap,
-            topPadding = monthLabelHeight,
-            labelColor = labelColor
-        )
-
-        Box(modifier = Modifier.horizontalScroll(scrollState)) {
-            Canvas(
-                modifier = Modifier
-                    .width(gridWidth)
-                    .height(canvasHeight)
-            ) {
-                val cellPx = cellSize.toPx()
-                val gapPx = gap.toPx()
-                val cornerPx = cornerRadius.toPx()
-                val gridTopPx = monthLabelHeight.toPx()
-
-                var lastLabeledMonth: Month? = null
-                weeks.forEachIndexed { weekIndex, week ->
-                    val x = weekIndex * (cellPx + gapPx)
-                    week.days.forEachIndexed { dayIndex, count ->
-                        if (count != null) {
-                            drawRoundRect(
-                                color = Color(palette[paletteIndex(count)]),
-                                topLeft = Offset(x = x, y = gridTopPx + dayIndex * (cellPx + gapPx)),
-                                size = Size(cellPx, cellPx),
-                                cornerRadius = CornerRadius(cornerPx)
-                            )
-                        }
-                    }
-                    val month = week.weekFirstDay.month
-                    if (month != lastLabeledMonth &&
-                        (week.startsNewMonth || (weekIndex == 0 && lastLabeledMonth == null))
-                    ) {
-                        val measured = textMeasurer.measure(
-                            AnnotatedString(monthAbbrev(month)),
-                            style = monthLabelTextStyle
-                        )
-                        drawText(
-                            textLayoutResult = measured,
-                            topLeft = Offset(x = x, y = 0f)
-                        )
-                        lastLabeledMonth = month
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -244,34 +150,6 @@ private fun LeetCodeHeatmap(
                 }
 
                 x += monthWidthPx
-            }
-        }
-    }
-}
-
-@Composable
-private fun DayLabelColumn(
-    cellSize: Dp,
-    gap: Dp,
-    topPadding: Dp,
-    labelColor: Color
-) {
-    Column(
-        modifier = Modifier.padding(top = topPadding, end = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(gap)
-    ) {
-        listOf("", "Mon", "", "Wed", "", "Fri", "").forEach { label ->
-            Box(
-                modifier = Modifier.height(cellSize),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                if (label.isNotEmpty()) {
-                    Text(
-                        text = label,
-                        fontSize = 9.sp,
-                        color = labelColor
-                    )
-                }
             }
         }
     }

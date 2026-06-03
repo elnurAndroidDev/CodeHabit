@@ -10,7 +10,6 @@ import android.widget.RemoteViews
 import com.tabletap.githubcontribsapp.R
 import com.tabletap.githubcontribsapp.domain.Contrib
 import com.tabletap.githubcontribsapp.presentation.MainActivity
-import com.tabletap.githubcontribsapp.presentation.home.components.HeatmapStyle
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +80,7 @@ class ContribsAppWidgetProvider : AppWidgetProvider() {
             val ep = EntryPointAccessors.fromApplication<WidgetEntryPoint>(context)
             val source = ep.widgetSourcePrefs().get(widgetId) ?: return
             val data = fetchData(ep, source)
-            val views = buildRemoteViews(context, appWidgetManager, widgetId, data, source)
+            val views = buildRemoteViews(context, appWidgetManager, widgetId, data)
             appWidgetManager.updateAppWidget(widgetId, views)
         }
 
@@ -130,8 +129,7 @@ class ContribsAppWidgetProvider : AppWidgetProvider() {
             context: Context,
             appWidgetManager: AppWidgetManager,
             widgetId: Int,
-            data: SourceData,
-            source: WidgetSource
+            data: SourceData
         ): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.widget_contribs)
 
@@ -175,8 +173,7 @@ class ContribsAppWidgetProvider : AppWidgetProvider() {
             val widthPx = (contentWidthDp * density).toInt()
             val heightPx = (contentHeightDp * density).toInt()
 
-            val style = if (source == WidgetSource.LeetCode) HeatmapStyle.LeetCode else HeatmapStyle.GitHub
-            val bitmap = ContribGraphRenderer.render(contribs, style, widthPx, heightPx, density)
+            val bitmap = ContribGraphRenderer.render(contribs, widthPx, heightPx, density)
             views.setImageViewBitmap(R.id.widget_image, bitmap)
 
             return views
