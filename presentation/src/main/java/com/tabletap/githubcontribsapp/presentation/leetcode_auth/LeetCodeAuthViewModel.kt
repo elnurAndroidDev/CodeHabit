@@ -3,7 +3,7 @@ package com.tabletap.githubcontribsapp.presentation.leetcode_auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tabletap.githubcontribsapp.domain.leetcode.LeetCodeProfileRepository
-import com.tabletap.githubcontribsapp.domain.leetcode.ValidateLeetCodeUserUseCase
+import com.tabletap.githubcontribsapp.domain.leetcode.LeetCodeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LeetCodeAuthViewModel @Inject constructor(
     private val profileRepository: LeetCodeProfileRepository,
-    private val validateUser: ValidateLeetCodeUserUseCase
+    private val leetCodeRepository: LeetCodeRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LeetCodeAuthState())
@@ -40,7 +40,7 @@ class LeetCodeAuthViewModel @Inject constructor(
         viewModelScope.launch {
             Timber.d("Validating LeetCode user: $trimmed")
             _state.update { it.copy(isLoading = true, error = null) }
-            validateUser(trimmed)
+            leetCodeRepository.getSubmissions(trimmed)
                 .onSuccess {
                     profileRepository.saveUsername(trimmed)
                     profileRepository.markFirstRunComplete()

@@ -2,8 +2,8 @@ package com.tabletap.githubcontribsapp.presentation.splash
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tabletap.githubcontribsapp.domain.github.ContribsRepository
 import com.tabletap.githubcontribsapp.domain.github.TokenRepository
-import com.tabletap.githubcontribsapp.domain.github.ValidateTokenUseCase
 import com.tabletap.githubcontribsapp.domain.leetcode.LeetCodeProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,8 +16,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SplashViewModel @Inject constructor(
     private val tokenRepository: TokenRepository,
-    private val validateToken: ValidateTokenUseCase,
-    private val leetCodeProfileRepository: LeetCodeProfileRepository
+    private val leetCodeProfileRepository: LeetCodeProfileRepository,
+    private val contribRepository: ContribsRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<SplashState>(SplashState.Loading)
@@ -36,7 +36,7 @@ class SplashViewModel @Inject constructor(
                 return@launch
             }
             Timber.d("Stored token found, validating…")
-            validateToken(token)
+            contribRepository.validateToken(token)
                 .onSuccess {
                     if (leetCodeProfileRepository.isFirstRunComplete()) {
                         Timber.d("Token valid → navigating to home")

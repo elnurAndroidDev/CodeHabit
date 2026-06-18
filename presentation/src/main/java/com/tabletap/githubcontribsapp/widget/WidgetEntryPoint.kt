@@ -1,7 +1,9 @@
 package com.tabletap.githubcontribsapp.widget
 
+import com.tabletap.githubcontribsapp.domain.github.ContribsRepository
 import com.tabletap.githubcontribsapp.domain.github.TokenRepository
 import com.tabletap.githubcontribsapp.domain.leetcode.LeetCodeProfileRepository
+import com.tabletap.githubcontribsapp.domain.leetcode.LeetCodeRepository
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -11,8 +13,7 @@ import dagger.hilt.components.SingletonComponent
 interface WidgetEntryPoint {
     fun tokenRepository(): TokenRepository
     fun leetCodeProfileRepository(): LeetCodeProfileRepository
-    fun getCurrentUser(): GetCurrentUserUseCase
-    fun getContribs(): GetContribsUseCase
-    fun getLeetCodeContribs(): GetLeetCodeContribsUseCase
+    fun contribsRepository(): ContribsRepository
+    fun leetCodeRepository(): LeetCodeRepository
     fun widgetSourcePrefs(): WidgetSourcePrefs
 }

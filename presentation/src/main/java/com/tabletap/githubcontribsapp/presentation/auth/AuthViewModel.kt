@@ -2,8 +2,8 @@ package com.tabletap.githubcontribsapp.presentation.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tabletap.githubcontribsapp.domain.github.ContribsRepository
 import com.tabletap.githubcontribsapp.domain.github.TokenRepository
-import com.tabletap.githubcontribsapp.domain.github.ValidateTokenUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val tokenRepository: TokenRepository,
-    private val validateToken: ValidateTokenUseCase
+    private val contribRepository: ContribsRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())
@@ -37,7 +37,7 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             Timber.d("Login attempt")
             _state.update { it.copy(isLoading = true, error = null) }
-            validateToken(token)
+            contribRepository.validateToken(token)
                 .onSuccess {
                     Timber.d("Token valid, saving and navigating to LeetCode setup")
                     tokenRepository.saveToken(token.trim())

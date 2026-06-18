@@ -97,19 +97,19 @@ class ContribsAppWidgetProvider : AppWidgetProvider() {
             }
 
         private suspend fun fetchGitHub(ep: WidgetEntryPoint): SourceData {
-            val username = ep.getCurrentUser()().getOrNull()
+            val username = ep.contribsRepository().getCurrentUser().getOrNull()
                 ?: return SourceData(title = "GitHub", contribs = null)
             val now = ZonedDateTime.now(ZoneOffset.UTC)
             val to = now.format(DateTimeFormatter.ISO_INSTANT)
             val from = now.minusYears(1).format(DateTimeFormatter.ISO_INSTANT)
-            val contribs = ep.getContribs()(username, from, to).getOrNull()
+            val contribs = ep.contribsRepository().getContributes(username, from, to).getOrNull()
             return SourceData(title = "GitHub · @$username", contribs = contribs)
         }
 
         private suspend fun fetchLeetCode(ep: WidgetEntryPoint): SourceData {
             val username = ep.leetCodeProfileRepository().getUsername()
                 ?: return SourceData(title = "LeetCode", contribs = null)
-            val contribs = ep.getLeetCodeContribs()(username).getOrNull()
+            val contribs = ep.leetCodeRepository().getSubmissions(username).getOrNull()
             return SourceData(title = "LeetCode · @$username", contribs = contribs)
         }
 

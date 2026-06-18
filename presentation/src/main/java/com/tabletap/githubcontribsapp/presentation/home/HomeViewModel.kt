@@ -3,11 +3,10 @@ package com.tabletap.githubcontribsapp.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tabletap.githubcontribsapp.domain.Contrib
-import com.tabletap.githubcontribsapp.domain.github.GetContribsUseCase
-import com.tabletap.githubcontribsapp.domain.github.GetCurrentUserUseCase
+import com.tabletap.githubcontribsapp.domain.github.ContribsRepository
 import com.tabletap.githubcontribsapp.domain.github.TokenRepository
-import com.tabletap.githubcontribsapp.domain.leetcode.GetLeetCodeContribsUseCase
 import com.tabletap.githubcontribsapp.domain.leetcode.LeetCodeProfileRepository
+import com.tabletap.githubcontribsapp.domain.leetcode.LeetCodeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -27,11 +26,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val getCurrentUser: GetCurrentUserUseCase,
-    private val getContribs: GetContribsUseCase,
-    private val getLeetCodeContribs: GetLeetCodeContribsUseCase,
+    private val contribRepository: ContribsRepository,
     private val tokenRepository: TokenRepository,
-    private val leetCodeProfileRepository: LeetCodeProfileRepository
+    private val leetCodeProfileRepository: LeetCodeProfileRepository,
+    private val leetCodeRepository: LeetCodeRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -126,7 +124,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun loadGithub() {
-        val usernameResult = getCurrentUser()
+        val usernameResult = contribRepository.getCurrentUser()
         if (usernameResult.isFailure) {
             val message = usernameResult.exceptionOrNull()?.message ?: "Could not load GitHub user"
             Timber.w("Failed to get GitHub user: $message")
@@ -140,7 +138,7 @@ class HomeViewModel @Inject constructor(
         val to = now.format(DateTimeFormatter.ISO_INSTANT)
         val from = now.minusYears(1).format(DateTimeFormatter.ISO_INSTANT)
 
-        getContribs(username, from, to)
+        contribRepository.getContributes(username, from, to)
             .onSuccess { contribs ->
                 Timber.d("Loaded ${contribs.size} GitHub contribution days")
                 _state.update { it.copy(github = SourceState.Success(contribs)) }
@@ -156,7 +154,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun loadLeetCode(username: String) {
-        getLeetCodeContribs(username)
+        leetCodeRepository.getSubmissions(username)
             .onSuccess { contribs ->
                 Timber.d("Loaded ${contribs.size} LeetCode submission days")
                 _state.update { it.copy(leetcode = SourceState.Success(contribs)) }
