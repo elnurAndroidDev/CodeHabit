@@ -52,10 +52,17 @@ fun ContributionGraph(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    val streak = remember(contributions) { longestStreak(contributions) }
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Longest streak: $streak ${if (streak == 1) "day" else "days"}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(12.dp))
         if (contributions.isNotEmpty()) {
